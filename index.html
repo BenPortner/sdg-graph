@@ -200,7 +200,9 @@
     }).run();
 
     // helper function: moves viewport to node and zooms in on it
-    const fitpadding = 300;
+    // get vieport width to calculate padding
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    const fitpadding = vw/6;
     function move_to_node(node) {
         cy.animate(
             { center: { eles: node } },
