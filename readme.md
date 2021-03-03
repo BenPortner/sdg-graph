@@ -12,11 +12,12 @@ See interactive [demo on nbviewer](https://nbviewer.jupyter.org/github/BenPortne
 ## Features
 
 Features:
-- concentric layout
-- zoom and pan via gestures or UI widget (thanks to [panzoom](https://github.com/cytoscape/cytoscape.js-panzoom) and [Font Awesome](https://fontawesome.com/))
-- tooltips show node information on hover (thanks to [cy-popper](https://github.com/cytoscape/cytoscape.js-popper) and [popper](https://popper.js.org/))
-- collapse / expand parts of the graph for better overview
-- search for nodes based on their text content
+- concentric layout with goals at the center and indicators at the edge
+- user can zoom and pan via gestures or UI widget (thanks to [panzoom](https://github.com/cytoscape/cytoscape.js-panzoom) and [Font Awesome](https://fontawesome.com/))
+- user can hover over nodes to show tooltips with further information (thanks to [cy-popper](https://github.com/cytoscape/cytoscape.js-popper) and [popper](https://popper.js.org/))
+- user can click on a node to collapse / expand parts of the graph for better overview
+- user can double-click on a node to zoom in on it
+- user can search for nodes based on their description or id
 
 
 ## Acknowledgements
