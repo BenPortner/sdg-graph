@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="css/cytoscape.js-panzoom.css">
     <link rel="stylesheet" href="font-awesome-4.0.3/css/font-awesome.css">
     <link rel="stylesheet" href="css/style.css">
+    <!-- color data for each sdg -->
+    <script src="js/sdg-colors.js"></script>
     <!--SDG data from https://github.com/datapopalliance/SDGs-->
     <script src="data/SDG-hierarchical.js"></script>
     <!--graph library-->
@@ -43,18 +45,17 @@
             {
                 selector: 'node',
                 style: {
-                    'background-color': '#666',
-                    'label': 'data(id)'
+                    'background-color': 'white',
+                    'label': 'data(id)',
+                    'color': 'white',
                 }
             },
             {
                 selector: 'edge',
                 style: {
                     'width': 3,
-                    'line-color': '#ccc',
-                    'target-arrow-color': '#ccc',
                     'target-arrow-shape': 'triangle',
-                    'curve-style': 'bezier'
+                    'curve-style': 'bezier',
                 }
             }
         ],
@@ -64,18 +65,14 @@
     var nodes = [],
         edges = [];
 
-    // make parent node connecting all goals
-    parent = {
-        name: 'SDGs',
-        id: '0',
-    }
-    nodes.push(parent);
-    parent.cy = cy.add({ group: 'nodes', data: parent });
-
     // add goals, targets and indicators as nodes
     // connect goal-target and target-indicator pairs by edges
     // loop over goals
     for (goal of Object.values(sdgs)) {
+        // get goal color and icon
+        var goal_number = parseInt(goal.number);
+        var color = Object.values(sdg_colors)[goal_number - 1];
+        var img = "img/E-WEB-Goal-" + goal.number + ".png";
         // define node
         var goal_node = {
             name: "Goal " + goal.number,
@@ -84,16 +81,16 @@
             description: goal.description,
         };
         nodes.push(goal_node);
-        // define edge
-        var parent_edge = {
-            id: parent.name + '_' + goal_node.name,
-            source: parent.id,
-            target: goal_node.id,
-        }
-        edges.push(parent_edge);
-        // add goal and edge to graph
-        goal_node.cy = cy.add({ group: 'nodes', data: goal_node });
-        parent_edge.cy = cy.add({ group: 'edges', data: parent_edge });
+        // add goal to graph
+        goal_node.cy = cy.add({
+            group: 'nodes',
+            data: goal_node,
+            style: {
+                "background-color": color, 
+                // 'background-image':img,
+                // 'background-fit': 'contain',
+            },
+        });
 
         // loop over targets
         for (target of Object.values(goal.targets)) {
@@ -114,8 +111,16 @@
             };
             edges.push(goal_edge);
             // add target and edge to graph
-            target_node.cy = cy.add({ group: 'nodes', data: target_node });
-            goal_edge.cy = cy.add({ group: 'edges', data: goal_edge });
+            target_node.cy = cy.add({
+                group: 'nodes',
+                data: target_node,
+                style: { "background-color": color },
+            });
+            goal_edge.cy = cy.add({
+                group: 'edges',
+                data: goal_edge,
+                style: { "line-color": color, 'target-arrow-color': color },
+            });
 
             // loop over indicators
             for (indicator of Object.values(target.indicators)) {
@@ -138,8 +143,16 @@
                 };
                 edges.push(target_edge);
                 // add indicator and edge to graph
-                indicator_node.cy = cy.add({ group: 'nodes', data: indicator_node });
-                target_edge.cy = cy.add({ group: 'edges', data: target_edge });
+                indicator_node.cy = cy.add({
+                    group: 'nodes',
+                    data: indicator_node,
+                    style: { "background-color": color },
+                });
+                target_edge.cy = cy.add({
+                    group: 'edges',
+                    data: target_edge,
+                    style: { "line-color": color, 'target-arrow-color': color },
+                });
             }
         }
     }
@@ -202,7 +215,7 @@
     // helper function: moves viewport to node and zooms in on it
     // get vieport width to calculate padding
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-    const fitpadding = vw/6;
+    const fitpadding = vw / 6;
     function move_to_node(node) {
         cy.animate(
             { center: { eles: node } },
@@ -281,7 +294,8 @@
     // expand all button
     const expand = document.getElementById("expand");
     expand.addEventListener("click", function (evt) {
-        nodes[0].cy.successors().style('display', 'element');
+        cy.nodes().style('display', 'element');
+        cy.edges().style('display', 'element');
     });
 
     // add panzoom control
