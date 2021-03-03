@@ -1,0 +1,293 @@
+<!doctype html>
+
+<html lang="en">
+<meta charset="utf-8">
+<meta author="Benjamin W. Portner">
+<meta license="GNU 3.0">
+<meta date="3 Marrch 2021">
+<meta description="Sustainable development goals, targets and indicators represented as a concentric graph.">
+<meta keywords="SDG,graph">
+
+<head>
+    <title>Sustainable Development Goals Graph</title>
+    <!-- stylsheets -->
+    <link rel="stylesheet" href="css/cytoscape.js-panzoom.css">
+    <link rel="stylesheet" href="font-awesome-4.0.3/css/font-awesome.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!--SDG data from https://github.com/datapopalliance/SDGs-->
+    <script src="data/SDG-hierarchical.js"></script>
+    <!--graph library-->
+    <script src="js/cytoscape.umd.js"></script>
+    <!--tooltips -->
+    <script src="js/popper.js"></script>
+    <script src="js/cytoscape-popper.js"></script>
+    <!--pan-zoom tool -->
+    <script src="js/jquery-3.5.1.js"></script>
+    <script src="js/cytoscape-panzoom.js"></script>
+</head>
+
+<body>
+    <div>
+        <span>Search: <input id="search" value=""></input></span>
+        <span><button id="expand">expand all</button></span>
+    </div>
+    <div id="cy"></div>
+</body>
+
+<script type="text/javascript">
+
+    // start cytoscape
+    var cy = cytoscape({
+        container: document.getElementById('cy'),
+        style: [ // the stylesheet for the graph
+            {
+                selector: 'node',
+                style: {
+                    'background-color': '#666',
+                    'label': 'data(id)'
+                }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width': 3,
+                    'line-color': '#ccc',
+                    'target-arrow-color': '#ccc',
+                    'target-arrow-shape': 'triangle',
+                    'curve-style': 'bezier'
+                }
+            }
+        ],
+    });
+
+    // helper variables holding all nodes and edges
+    var nodes = [],
+        edges = [];
+
+    // make parent node connecting all goals
+    parent = {
+        name: 'SDGs',
+        id: '0',
+    }
+    nodes.push(parent);
+    parent.cy = cy.add({ group: 'nodes', data: parent });
+
+    // add goals, targets and indicators as nodes
+    // connect goal-target and target-indicator pairs by edges
+    // loop over goals
+    for (goal of Object.values(sdgs)) {
+        // define node
+        var goal_node = {
+            name: "Goal " + goal.number,
+            type: "goal",
+            id: goal.number,
+            description: goal.description,
+        };
+        nodes.push(goal_node);
+        // define edge
+        var parent_edge = {
+            id: parent.name + '_' + goal_node.name,
+            source: parent.id,
+            target: goal_node.id,
+        }
+        edges.push(parent_edge);
+        // add goal and edge to graph
+        goal_node.cy = cy.add({ group: 'nodes', data: goal_node });
+        parent_edge.cy = cy.add({ group: 'edges', data: parent_edge });
+
+        // loop over targets
+        for (target of Object.values(goal.targets)) {
+            // define node
+            var target_node = {
+                name: "Target " + target.number,
+                type: "target",
+                id: target.number,
+                description: target.description,
+                parent: goal_node,
+            };
+            nodes.push(target_node);
+            // define edge
+            var goal_edge = {
+                id: goal_node.name + '_' + target_node.name,
+                source: goal_node.id,
+                target: target_node.id,
+            };
+            edges.push(goal_edge);
+            // add target and edge to graph
+            target_node.cy = cy.add({ group: 'nodes', data: target_node });
+            goal_edge.cy = cy.add({ group: 'edges', data: goal_edge });
+
+            // loop over indicators
+            for (indicator of Object.values(target.indicators)) {
+                // define node
+                var indicator_node = {
+                    name: "Indicator " + indicator.number,
+                    type: "indicator",
+                    id: indicator.number,
+                    description: indicator.description,
+                    tier_proposed: indicator.tier_proposed.code,
+                    tier_revised: indicator.tier_revised.code,
+                    parent: target_node,
+                };
+                nodes.push(indicator_node);
+                // define edge
+                var target_edge = {
+                    id: target_node.name + '_' + indicator_node.name,
+                    source: target_node.id,
+                    target: indicator_node.id,
+                };
+                edges.push(target_edge);
+                // add indicator and edge to graph
+                indicator_node.cy = cy.add({ group: 'nodes', data: indicator_node });
+                target_edge.cy = cy.add({ group: 'edges', data: target_edge });
+            }
+        }
+    }
+
+    // helper function to create tooltips
+    // builds an HTML table representation of each node
+    var skip = ["parent", "cy"];
+    function makeTooltip(e) {
+        var div = document.createElement('div');
+        div.classList.add('popper-div');
+        var tr = undefined,
+            td = undefined,
+            tbody = document.createElement("tbody");
+        for (var key in e) {
+            if (skip.includes(key)) continue;
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            td.appendChild(document.createTextNode(key + ":"));
+            tr.appendChild(td);
+            td = document.createElement("td");
+            td.appendChild(document.createTextNode(e[key]));
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        }
+        var table = document.createElement("table");
+        table.appendChild(tbody);
+        div.appendChild(table);
+        div.style.display = 'none';
+        document.body.appendChild(div);
+        return div;
+    };
+
+    // make tooltips
+    for (e of nodes) {
+        // make tooltip
+        var epop = e.cy.popper({ content: makeTooltip(e) })
+        // save handle to popper div
+        e.cy.data('popper', epop);
+        // show/hide tooltip on hover
+        e.cy.on('mouseover', (evt) => { evt.target.data('popper').state.elements.popper.style.display = 'block'; });
+        e.cy.on('mouseout', (evt) => { evt.target.data('popper').state.elements.popper.style.display = 'none'; });
+        // update tooltip position if node is moved or viewport updated
+        e.cy.on('position', epop.update);
+        cy.on('pan zoom resize', epop.update);
+    }
+
+    // arrange nodes in concentric circles with parent node at center
+    cy.layout({
+        fit: false,
+        name: 'concentric',
+        nodeDimensionsIncludeLabels: true,
+        concentric: function (node) {
+            if (node.data('name') == 'SDGs') return 1000; //center
+            else if (node.data('name').includes('Goal')) return 100; // first layer
+            else if (node.data('name').includes('Target')) return 10; // second layer
+            else if (node.data('name').includes('Indicator')) return 0; // third layer
+        },
+    }).run();
+
+    // helper function: moves viewport to node and zooms in on it
+    const fitpadding = 300;
+    function move_to_node(node) {
+        cy.animate(
+            { center: { eles: node } },
+            { fit: { eles: node, padding: fitpadding } },
+            { duration: 1000 }
+        );
+    }
+
+    // helper variables necessary to differentiate single click from double click
+    // workaround by https://gist.github.com/karbassi/639453
+    var timer = 0;
+    var delay = 200;
+    var clickCount = 0;
+    // define what happens when node gets clicked
+    cy.nodes().on('click', function (evt) {
+        clickCount++;
+        // single click: collapse/expand node successors
+        if (clickCount === 1) {
+            timer = setTimeout(function () {
+                clickCount = 0;
+                var children = evt.target.successors();
+                if (children.length == 0) return;
+                hide_show = children[0].style('display') == 'none' ? 'element' : 'none';
+                children.style('display', hide_show);
+            }, delay);
+            // double click: move to clicked node
+        } else if (clickCount === 2) {
+            clearTimeout(timer);
+            clickCount = 0;
+            move_to_node(evt.target);
+        }
+    });
+
+
+    // hide targets and indicators by default
+    cy.nodes().filter(n => n.data('name').includes('Goal')).successors().style('display', 'none');
+
+
+    // add search functionality
+    // create search index
+    const index = nodes.map(n => n.id + n.name + n.description);
+    // helper variables
+    var matches = undefined,
+        curr_match = undefined,
+        curr_node = undefined;
+    // handle to search field
+    const search = document.getElementById("search");
+    // search is started when pressing enter in search field
+    search.addEventListener("keyup", function (event) {
+        // check if enter button was pressed
+        if (event.keyCode === 13) {
+            // get text entered in input field
+            searchtxt = search.value.toLowerCase();
+            // find text in search index
+            matches = index.filter(i => i.includes(searchtxt));
+            // do nothing if no matches
+            if (matches.length == 0) return undefined;
+            // go to first match if first search or last match reached
+            if (curr_match == undefined || curr_match == matches.length - 1) { curr_match = 0; }
+            // each time enter is pressed, go to next element
+            else { curr_match = curr_match + 1; }
+            // get matched node
+            curr_node = nodes[index.indexOf(matches[curr_match])];
+            // make node visible if necessary
+            curr_node.cy.add(curr_node.cy.predecessors()).style('display', 'element');
+            // move viewport to node
+            move_to_node(curr_node.cy);
+        }
+        // reset matches if other key than enter was pressed
+        else {
+            matches = undefined;
+            curr_match = undefined;
+        }
+    });
+
+    // expand all button
+    const expand = document.getElementById("expand");
+    expand.addEventListener("click", function (evt) {
+        nodes[0].cy.successors().style('display', 'element');
+    });
+
+    // add panzoom control
+    cy.panzoom({
+        panSpeed: 10,
+        panDistance: 60,
+    });
+
+</script>
+
+</html>
