@@ -6,7 +6,7 @@ This project visualizes the Sustainable Development Goals (SDGs) as a graph in y
 - nodes are goals, targets, and indicators
 - edges show associations of targets to goals, and indicators to targets
 
-See interactive [demo on nbviewer](https://nbviewer.jupyter.org/github/BenPortner/sdg-graph/blob/main/index.html).
+See interactive [demo on githack](https://rawcdn.githack.com/BenPortner/sdg-graph/79042464ed1928f807a226c21deacae8de4e752b/index.html) (thanks to [Pavel Puchkin](http://neoascetic.me/) for the [CDN](https://raw.githack.com/)).
 
 
 ## Features
